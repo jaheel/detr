@@ -26,9 +26,9 @@ class HungarianMatcher(nn.Module):
             cost_giou: This is the relative weight of the giou loss of the bounding box in the matching cost
         """
         super().__init__()
-        self.cost_class = cost_class
-        self.cost_bbox = cost_bbox
-        self.cost_giou = cost_giou
+        self.cost_class = cost_class # lambda_match cost
+        self.cost_bbox = cost_bbox # lambda_L1
+        self.cost_giou = cost_giou # lambda_iou
         assert cost_class != 0 or cost_bbox != 0 or cost_giou != 0, "all costs cant be 0"
 
     @torch.no_grad()

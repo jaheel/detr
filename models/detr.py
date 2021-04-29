@@ -62,10 +62,24 @@ class DETR(nn.Module):
 
         src, mask = features[-1].decompose()
         assert mask is not None
+
+        # hs : 
+        #       Not aux_loss : {float, tensor(4-dim)} of shape (1, num_queries, batch_size, d_model)
+        #       aux_loss : {float, tensor(4-dim)} of shape (num_decoder_layers, num_queries, batch_size, d_model)
         hs = self.transformer(self.input_proj(src), mask, self.query_embed.weight, pos[-1])[0]
 
+        # outputs_class : 
+        #       Not aux_loss : {float, tensor(4-dim)} of shape (1, num_queries, batch_size, num_classes + 1)
+        #       aux_loss : {float, tensor(4-dim)} of shape (num_decoder_layers, num_queries, batch_size, num_classes + 1)
         outputs_class = self.class_embed(hs)
+
+        # outputs_coord :
+        #       Not aux_loss : {float, tensor(4-dim)} of shape (1, num_queries, batch_size, sigmoid(x, y, w, h))
+        #       aux_loss : {float, tensor(4-dim)} of shape (num_decoder_layers, num_queries, batch_size, sigmoid(cx, cy, w, h))
         outputs_coord = self.bbox_embed(hs).sigmoid()
+
+        # outputs_class[-1] : {float, tensor(3-dim)} of shape (batch_size, num_queries, num_classes + 1), the last result of outputs_class
+        # outputs_coord[-1] : {float, tensor(3-dim)} of shape (batch_size, num_queries, sigmoid(cx, cy, w, h)), the last result of outputs_coord
         out = {'pred_logits': outputs_class[-1], 'pred_boxes': outputs_coord[-1]}
         if self.aux_loss:
             out['aux_outputs'] = self._set_aux_loss(outputs_class, outputs_coord)
@@ -290,6 +304,17 @@ class MLP(nn.Module):
     """ Very simple multi-layer perceptron (also called FFN)"""
 
     def __init__(self, input_dim, hidden_dim, output_dim, num_layers):
+        """
+        Parameters
+        ----------
+        input_dim : {int, scalar} the number of input neurons
+
+        hidden_dim : {int, scalar} the number of hidden layer neurons
+
+        output_dim : {int, scalar} the number of output layer neurons
+
+        num_layers : {int, scalar} hidden layer number + 1 (output layer number)
+        """
         super().__init__()
         self.num_layers = num_layers
         h = [hidden_dim] * (num_layers - 1)
