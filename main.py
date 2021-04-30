@@ -80,11 +80,11 @@ def get_args_parser():
 
     # dataset parameters
     parser.add_argument('--dataset_file', default='coco')
-    parser.add_argument('--coco_path', type=str)
+    parser.add_argument('--coco_path', default='./datasets', type=str)
     parser.add_argument('--coco_panoptic_path', type=str)
     parser.add_argument('--remove_difficult', action='store_true')
 
-    parser.add_argument('--output_dir', default='',
+    parser.add_argument('--output_dir', default='./output',
                         help='path where to save, empty for no saving')
     parser.add_argument('--device', default='cuda',
                         help='device to use for training / testing')
@@ -106,28 +106,51 @@ def main(args):
     utils.init_distributed_mode(args)
     print("git:\n  {}\n".format(utils.get_sha()))
 
+    # -----------------------------
+    # Path to the pretrained model. If set, only the mask head will be trained
+    #
     if args.frozen_weights is not None:
         assert args.masks, "Frozen training is meant for segmentation only"
+    # -----------------------------
+
     print(args)
 
     device = torch.device(args.device)
 
+    # -----------------------------
+    # used to reproduce
+    #
     # fix the seed for reproducibility
+    # 
     seed = args.seed + utils.get_rank()
     torch.manual_seed(seed)
     np.random.seed(seed)
     random.seed(seed)
+    # -----------------------------
 
+    # -----------------------------
+    # model building
+    #
     model, criterion, postprocessors = build_model(args)
     model.to(device)
 
     model_without_ddp = model
+
     if args.distributed:
         model = torch.nn.parallel.DistributedDataParallel(model, device_ids=[args.gpu])
         model_without_ddp = model.module
+    # -----------------------------
+
+    # -----------------------------
+    # parameter quantity
+    #   number of parameters to be trained
+    #
     n_parameters = sum(p.numel() for p in model.parameters() if p.requires_grad)
     print('number of params:', n_parameters)
+    # -----------------------------
 
+    # -----------------------------
+    # 
     param_dicts = [
         {"params": [p for n, p in model_without_ddp.named_parameters() if "backbone" not in n and p.requires_grad]},
         {
@@ -135,9 +158,23 @@ def main(args):
             "lr": args.lr_backbone,
         },
     ]
+    # -----------------------------
+
+    # -----------------------------
+    # optimizer setting
+    #
     optimizer = torch.optim.AdamW(param_dicts, lr=args.lr,
                                   weight_decay=args.weight_decay)
+    # -----------------------------
+
+    # -----------------------------
+    # 等间隔调整学习率 StepLR
+    #   torch.optim.lr_scheduler.StepLR(optimizer, step_size, gamma=0.1, last_epoch=-1)
+    #   每训练step_size个epoch, 学习率调整为 lr = lr * gamma
+    #
     lr_scheduler = torch.optim.lr_scheduler.StepLR(optimizer, args.lr_drop)
+    # -----------------------------
+
 
     dataset_train = build_dataset(image_set='train', args=args)
     dataset_val = build_dataset(image_set='val', args=args)

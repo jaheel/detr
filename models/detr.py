@@ -335,17 +335,39 @@ def build(args):
     # you should pass `num_classes` to be 2 (max_obj_id + 1).
     # For more details on this, check the following discussion
     # https://github.com/facebookresearch/detr/issues/108#issuecomment-650269223
+
+    # -------------------------
+    # num_classes setting
+    #           According to the args.dataset_file setting
+    #
     num_classes = 20 if args.dataset_file != 'coco' else 91
     if args.dataset_file == "coco_panoptic":
         # for panoptic, we just add a num_classes that is large enough to hold
         # max_obj_id + 1, but the exact value doesn't really matter
         num_classes = 250
+    # -------------------------
+
+    # -------------------------
+    # device setting
+    #
     device = torch.device(args.device)
+    # -------------------------
 
+    # -------------------------
+    # Backbone
+    #
     backbone = build_backbone(args)
+    # -------------------------
 
+    # -------------------------
+    # Transformer
+    #
     transformer = build_transformer(args)
+    # -------------------------
 
+    # -------------------------
+    # DETR model
+    #
     model = DETR(
         backbone,
         transformer,
@@ -353,32 +375,70 @@ def build(args):
         num_queries=args.num_queries,
         aux_loss=args.aux_loss,
     )
+    # -------------------------
+
+    # -------------------------
+    # DETR segmentation model
+    #
     if args.masks:
         model = DETRsegm(model, freeze_detr=(args.frozen_weights is not None))
+    # -------------------------
+
+    # -------------------------
+    # loss function
+    # 
     matcher = build_matcher(args)
+    
     weight_dict = {'loss_ce': 1, 'loss_bbox': args.bbox_loss_coef}
     weight_dict['loss_giou'] = args.giou_loss_coef
+    # -------------------------
+
+    # -------------------------
+    # segmentation setting
+    # 
     if args.masks:
         weight_dict["loss_mask"] = args.mask_loss_coef
         weight_dict["loss_dice"] = args.dice_loss_coef
+    # -------------------------
+
+    # -------------------------
+    # auxiliary decoding loss
+    # 
     # TODO this is a hack
     if args.aux_loss:
         aux_weight_dict = {}
         for i in range(args.dec_layers - 1):
             aux_weight_dict.update({k + f'_{i}': v for k, v in weight_dict.items()})
         weight_dict.update(aux_weight_dict)
+    # -------------------------
 
+    # -------------------------
+    # 
     losses = ['labels', 'boxes', 'cardinality']
+
+    # segmentation
     if args.masks:
         losses += ["masks"]
+    
+    # -------------------------
+    # criterion setting
+    #
     criterion = SetCriterion(num_classes, matcher=matcher, weight_dict=weight_dict,
                              eos_coef=args.eos_coef, losses=losses)
     criterion.to(device)
+    # -------------------------
+
+    # -------------------------
+    # postprocessor setting
+    #
     postprocessors = {'bbox': PostProcess()}
+
+    # segmentation setting
     if args.masks:
         postprocessors['segm'] = PostProcessSegm()
         if args.dataset_file == "coco_panoptic":
             is_thing_map = {i: i <= 90 for i in range(201)}
             postprocessors["panoptic"] = PostProcessPanoptic(is_thing_map, threshold=0.85)
+    # -------------------------
 
     return model, criterion, postprocessors
