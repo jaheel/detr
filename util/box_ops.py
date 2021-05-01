@@ -11,11 +11,11 @@ def box_cxcywh_to_xyxy(x):
 
     Parameters
     ----------
-    x : {float, matrix} of shape (batch_size * num_queries, 4)
+    x : {float, matrix} of shape (batch_size * num_queries, 4) value is between [0, 1]
 
     Returns
     -------
-    result : {float, matrix} of shape (batch_size * num_queries, 4)
+    result : {float, matrix} of shape (batch_size * num_queries, 4) value is between [0, 1]
     """
 
     # x_c, y_c, w, h : (batch_size * num_queries)
@@ -30,11 +30,11 @@ def box_xyxy_to_cxcywh(x):
 
     Parameters
     ----------
-    x : {float, matrix} of shape (batch_size * num_queries, 4)
+    x : {float, matrix} of shape (batch_size * num_queries, 4) value is between [0, 1]
 
     Returns
     -------
-    result : {float, matrix} of shape (batch_size * num_queries, 4)
+    result : {float, matrix} of shape (batch_size * num_queries, 4) value is between [0, 1]
     """
     x0, y0, x1, y1 = x.unbind(-1)
     b = [(x0 + x1) / 2, (y0 + y1) / 2,

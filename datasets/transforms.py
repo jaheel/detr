@@ -14,6 +14,42 @@ from util.misc import interpolate
 
 
 def crop(image, target, region):
+    """
+
+    Parameters
+    ----------
+    image : {PIL.Image.Image, model=RGB, size=(W, H)}
+        
+    target : {dict_list}
+                {
+                    "boxes" : {float, matrix} shape of (target_bbox_number, [x_1, y_1, x_2, y_2]), target bbox coordinate set
+                    "labels" : {int, vector} shape of (target_bbox_number), target bbox label class
+                    "image_id" : {int, scalar}, image id
+                    "area" : {float, vector} shape of (target_bbox_number), every bbox area
+                    "iscrowd" : {int, vector}, value is (0 or 1), shape of (target_bbox_number), 0: segmentation is polygon format, 1 : segmentation is RLE format
+                    "orig_size" : {int} of [H, W]
+                    "size" : {int} of [H, W]
+                }
+    
+    region : params (i, j, h, w) to be passed to ``crop`` for random crop.
+
+    Returns
+    -------
+    cropped_image : {PIL.Image.Image, model=RGB, size=(w, h)}
+
+    target : {dict_list}
+                {
+                    "boxes" : {float, matrix} shape of (target_bbox_number, [x_1, y_1, x_2, y_2]), target bbox coordinate set
+                    "labels" : {int, vector} shape of (target_bbox_number), target bbox label class
+                    "image_id" : {int, scalar}, image id
+                    "area" : {float, vector} shape of (target_bbox_number), every bbox area
+                    "iscrowd" : {int, vector}, value is (0 or 1), shape of (target_bbox_number), 0: segmentation is polygon format, 1 : segmentation is RLE format
+                    "orig_size" : {int} of [H, W]
+                    "size" : {int} of [h, w]
+                }
+    """
+
+    # cropped_image : {PIL.Image.Image, model=RGB, size=(w, h)}
     cropped_image = F.crop(image, *region)
 
     target = target.copy()
@@ -57,6 +93,40 @@ def crop(image, target, region):
 
 
 def hflip(image, target):
+    """flip the specified image horizontally
+
+    Parameters
+    ----------
+    image : {PIL.Image.Image, model=RGB, size=(W, H)}
+        
+    target : {dict_list}
+                {
+                    "boxes" : {float, matrix} shape of (target_bbox_number, [x_1, y_1, x_2, y_2]), target bbox coordinate set
+                    "labels" : {int, vector} shape of (target_bbox_number), target bbox label class
+                    "image_id" : {int, scalar}, image id
+                    "area" : {float, vector} shape of (target_bbox_number), every bbox area
+                    "iscrowd" : {int, vector}, value is (0 or 1), shape of (target_bbox_number), 0: segmentation is polygon format, 1 : segmentation is RLE format
+                    "orig_size" : {int} of [H, W]
+                    "size" : {int} of [H, W]
+                }
+    
+    Returns
+    -------
+    image : {PIL.Image.Image, model=RGB, size=(W, H)}
+        
+    target : {dict_list}
+                {
+                    "boxes" : {float, matrix} shape of (target_bbox_number, [x_1, y_1, x_2, y_2]), target bbox coordinate set
+                    "labels" : {int, vector} shape of (target_bbox_number), target bbox label class
+                    "image_id" : {int, scalar}, image id
+                    "area" : {float, vector} shape of (target_bbox_number), every bbox area
+                    "iscrowd" : {int, vector}, value is (0 or 1), shape of (target_bbox_number), 0: segmentation is polygon format, 1 : segmentation is RLE format
+                    "orig_size" : {int} of [H, W]
+                    "size" : {int} of [H, W]
+                }
+    """
+
+    # flipped_image : {PIL.Image.Image, model=RGB, size=(W, H)}
     flipped_image = F.hflip(image)
 
     w, h = image.size
@@ -74,9 +144,60 @@ def hflip(image, target):
 
 
 def resize(image, target, size, max_size=None):
+    """ resize the image
+
+    Parameters
+    ----------
+    image : {PIL.Image.Image, model=RGB, size=(W, H)}
+    
+    target : {dict_list}
+                {
+                    "boxes" : {float, matrix} shape of (target_bbox_number, [x_1, y_1, x_2, y_2]), target bbox coordinate set
+                    "labels" : {int, vector} shape of (target_bbox_number), target bbox label class
+                    "image_id" : {int, scalar}, image id
+                    "area" : {float, vector} shape of (target_bbox_number), every bbox area
+                    "iscrowd" : {int, vector}, value is (0 or 1), shape of (target_bbox_number), 0: segmentation is polygon format, 1 : segmentation is RLE format
+                    "orig_size" : {int} of [H, W]
+                    "size" : {int} of [H, W]
+                }
+    
+    size : {int, min_size(scalar) or (w, h) tuple} 
+
+    max_size : {int, scalar}
+
+    Returns
+    -------
+    rescaled_image : {PIL.Image.Image, model=RGB, size=(w, h)}
+
+    target : {dict_list} after resize
+                {
+                    "boxes" : {float, matrix} shape of (target_bbox_number, [x_1, y_1, x_2, y_2]), target bbox coordinate set
+                    "labels" : {int, vector} shape of (target_bbox_number), target bbox label class
+                    "image_id" : {int, scalar}, image id
+                    "area" : {float, vector} shape of (target_bbox_number), every bbox area
+                    "iscrowd" : {int, vector}, value is (0 or 1), shape of (target_bbox_number), 0: segmentation is polygon format, 1 : segmentation is RLE format
+                    "orig_size" : {int} of [H, W]
+                    "size" : {int} of [h, w]
+                }
+    """
     # size can be min_size (scalar) or (w, h) tuple
 
     def get_size_with_aspect_ratio(image_size, size, max_size=None):
+        """set min(W, H) to size, another zoom with aspect ratio
+
+        Parameters
+        ----------
+        image_size : {int} of shape [W, H]
+
+        size : {int, scalar}
+
+        max_size : (optional) {int, scalar} 
+
+        Returns
+        -------
+        (oh, ow) : both are {int, scalar}
+
+        """
         w, h = image_size
         if max_size is not None:
             min_original_size = float(min((w, h)))
@@ -97,20 +218,55 @@ def resize(image, target, size, max_size=None):
         return (oh, ow)
 
     def get_size(image_size, size, max_size=None):
+        """
+
+        Parameters
+        ----------
+        image_size : {int} of shape [W, H]
+
+        size : {int, scalar}
+
+        max_size : (optional) {int, scalar}
+
+        Returns
+        -------
+        (oh, ow) : both are {int, scalar} 
+        """
         if isinstance(size, (list, tuple)):
             return size[::-1]
         else:
             return get_size_with_aspect_ratio(image_size, size, max_size)
 
+    # ---------------------------
+    # get the image size which to resize
+    #
+    # size : [oh, ow]
     size = get_size(image.size, size, max_size)
+    # ---------------------------
+
+    # ---------------------------
+    # image after resize
+    #
+    # image : {PIL.Image.Image, model=RGB, size=(W, H)}
+    # size : [h, w]
+    #
+    # rescaled_image : {PIL.Image.Image, model=RGB, size=(w, h)}
     rescaled_image = F.resize(image, size)
+    # ---------------------------
 
     if target is None:
         return rescaled_image, None
 
+    # ---------------------------
+    # get the resize ratio
+    #
     ratios = tuple(float(s) / float(s_orig) for s, s_orig in zip(rescaled_image.size, image.size))
     ratio_width, ratio_height = ratios
+    # ---------------------------
 
+    # ---------------------------
+    # according to the resize ratio, adjust the target value
+    #
     target = target.copy()
     if "boxes" in target:
         boxes = target["boxes"]
@@ -124,6 +280,7 @@ def resize(image, target, size, max_size=None):
 
     h, w = size
     target["size"] = torch.tensor([h, w])
+    # ---------------------------
 
     if "masks" in target:
         target['masks'] = interpolate(
@@ -156,12 +313,68 @@ class RandomCrop(object):
 
 class RandomSizeCrop(object):
     def __init__(self, min_size: int, max_size: int):
+        """random size crop
+
+        Parameters
+        ----------
+        min_size : {int, scalar}
+
+        max_size : {int, scalar}
+        """
         self.min_size = min_size
         self.max_size = max_size
 
     def __call__(self, img: PIL.Image.Image, target: dict):
+        """
+
+        Parameters
+        ----------
+        img : {PIL.Image.Image, model=RGB, size=(W, H)}
+        
+        target : {dict_list}
+                    {
+                        "boxes" : {float, matrix} shape of (target_bbox_number, [x_1, y_1, x_2, y_2]), target bbox coordinate set
+                        "labels" : {int, vector} shape of (target_bbox_number), target bbox label class
+                        "image_id" : {int, scalar}, image id
+                        "area" : {float, vector} shape of (target_bbox_number), every bbox area
+                        "iscrowd" : {int, vector}, value is (0 or 1), shape of (target_bbox_number), 0: segmentation is polygon format, 1 : segmentation is RLE format
+                        "orig_size" : {int} of [H, W]
+                        "size" : {int} of [H, W]
+                    }
+        
+        Returns
+        -------
+        cropped_image : {PIL.Image.Image, model=RGB, size=(w, h)}
+
+        target : {dict_list}
+                    {
+                        "boxes" : {float, matrix} shape of (target_bbox_number, [x_1, y_1, x_2, y_2]), target bbox coordinate set
+                        "labels" : {int, vector} shape of (target_bbox_number), target bbox label class
+                        "image_id" : {int, scalar}, image id
+                        "area" : {float, vector} shape of (target_bbox_number), every bbox area
+                        "iscrowd" : {int, vector}, value is (0 or 1), shape of (target_bbox_number), 0: segmentation is polygon format, 1 : segmentation is RLE format
+                        "orig_size" : {int} of [H, W]
+                        "size" : {int} of [h, w]
+                    }
+        """
+        # ---------------
+        # w, h : random int number between [min, max]
+        #
         w = random.randint(self.min_size, min(img.width, self.max_size))
         h = random.randint(self.min_size, min(img.height, self.max_size))
+        # ---------------
+
+        # ---------------
+        # get_params(img, output_size):
+        # """Get parameters for ``crop`` for a random crop.
+
+        # Args:
+        #     img (PIL Image): Image to be cropped.
+        #     output_size (tuple): Expected output size of the crop.
+
+        # Returns:
+        #     tuple: params (i, j, h, w) to be passed to ``crop`` for random crop.
+        # """
         region = T.RandomCrop.get_params(img, [h, w])
         return crop(img, target, region)
 
@@ -183,6 +396,38 @@ class RandomHorizontalFlip(object):
         self.p = p
 
     def __call__(self, img, target):
+        """According to the probability determine whther to horizontal flip
+
+        Parameters
+        ----------
+        image : {PIL.Image.Image, model=RGB, size=(W, H)}
+        
+        target : {dict_list}
+                    {
+                        "boxes" : {float, matrix} shape of (target_bbox_number, [x_1, y_1, x_2, y_2]), target bbox coordinate set
+                        "labels" : {int, vector} shape of (target_bbox_number), target bbox label class
+                        "image_id" : {int, scalar}, image id
+                        "area" : {float, vector} shape of (target_bbox_number), every bbox area
+                        "iscrowd" : {int, vector}, value is (0 or 1), shape of (target_bbox_number), 0: segmentation is polygon format, 1 : segmentation is RLE format
+                        "orig_size" : {int} of [H, W]
+                        "size" : {int} of [H, W]
+                    }
+        
+        Returns
+        -------
+        image : {PIL.Image.Image, model=RGB, size=(W, H)}
+        
+        target : {dict_list}
+                    {
+                        "boxes" : {float, matrix} shape of (target_bbox_number, [x_1, y_1, x_2, y_2]), target bbox coordinate set
+                        "labels" : {int, vector} shape of (target_bbox_number), target bbox label class
+                        "image_id" : {int, scalar}, image id
+                        "area" : {float, vector} shape of (target_bbox_number), every bbox area
+                        "iscrowd" : {int, vector}, value is (0 or 1), shape of (target_bbox_number), 0: segmentation is polygon format, 1 : segmentation is RLE format
+                        "orig_size" : {int} of [H, W]
+                        "size" : {int} of [H, W]
+                    }
+        """
         if random.random() < self.p:
             return hflip(img, target)
         return img, target
@@ -190,11 +435,52 @@ class RandomHorizontalFlip(object):
 
 class RandomResize(object):
     def __init__(self, sizes, max_size=None):
+        """
+
+        Parameters
+        ----------
+        sizes : {int, vector} of shape (size_list_number),
+                choose one of sizes to resize the image
+
+        max_size : (optional) {int, scalar}
+        """
         assert isinstance(sizes, (list, tuple))
         self.sizes = sizes
         self.max_size = max_size
 
     def __call__(self, img, target=None):
+        """
+        
+        Parameters
+        ----------
+        img : {PIL.Image.Image, model=RGB, size=(W, H)}
+        
+        target : {dict_list}
+                    {
+                        "boxes" : {float, matrix} shape of (target_bbox_number, [x_1, y_1, x_2, y_2]), target bbox coordinate set
+                        "labels" : {int, vector} shape of (target_bbox_number), target bbox label class
+                        "image_id" : {int, scalar}, image id
+                        "area" : {float, vector} shape of (target_bbox_number), every bbox area
+                        "iscrowd" : {int, vector}, value is (0 or 1), shape of (target_bbox_number), 0: segmentation is polygon format, 1 : segmentation is RLE format
+                        "orig_size" : {int} of [H, W]
+                        "size" : {int} of [H, W]
+                    }
+        
+        Returns
+        -------
+        rescaled_image : {PIL.Image.Image, model=RGB, size=(w, h)}
+
+        target : {dict_list} after resize
+                    {
+                        "boxes" : {float, matrix} shape of (target_bbox_number, [x_1, y_1, x_2, y_2]), target bbox coordinate set
+                        "labels" : {int, vector} shape of (target_bbox_number), target bbox label class
+                        "image_id" : {int, scalar}, image id
+                        "area" : {float, vector} shape of (target_bbox_number), every bbox area
+                        "iscrowd" : {int, vector}, value is (0 or 1), shape of (target_bbox_number), 0: segmentation is polygon format, 1 : segmentation is RLE format
+                        "orig_size" : {int} of [H, W]
+                        "size" : {int} of [h, w]
+                    }
+        """
         size = random.choice(self.sizes)
         return resize(img, target, size, self.max_size)
 
@@ -220,6 +506,38 @@ class RandomSelect(object):
         self.p = p
 
     def __call__(self, img, target):
+        """
+
+        Parameters
+        ----------
+        img : {PIL.Image.Image, model=RGB, size=(W, H)}
+        
+        target : {dict_list}
+                    {
+                        "boxes" : {float, matrix} shape of (target_bbox_number, [x_1, y_1, x_2, y_2]), target bbox coordinate set
+                        "labels" : {int, vector} shape of (target_bbox_number), target bbox label class
+                        "image_id" : {int, scalar}, image id
+                        "area" : {float, vector} shape of (target_bbox_number), every bbox area
+                        "iscrowd" : {int, vector}, value is (0 or 1), shape of (target_bbox_number), 0: segmentation is polygon format, 1 : segmentation is RLE format
+                        "orig_size" : {int} of [H, W]
+                        "size" : {int} of [H, W]
+                    }
+
+        Returns
+        -------
+        image : {PIL.Image.Image, model=RGB, size=(W, H)}
+        
+        target : {dict_list}
+                    {
+                        "boxes" : {float, matrix} shape of (target_bbox_number, [x_1, y_1, x_2, y_2]), target bbox coordinate set
+                        "labels" : {int, vector} shape of (target_bbox_number), target bbox label class
+                        "image_id" : {int, scalar}, image id
+                        "area" : {float, vector} shape of (target_bbox_number), every bbox area
+                        "iscrowd" : {int, vector}, value is (0 or 1), shape of (target_bbox_number), 0: segmentation is polygon format, 1 : segmentation is RLE format
+                        "orig_size" : {int} of [H, W]
+                        "size" : {int} of [h, w]
+                    }
+        """
         if random.random() < self.p:
             return self.transforms1(img, target)
         return self.transforms2(img, target)
@@ -227,6 +545,38 @@ class RandomSelect(object):
 
 class ToTensor(object):
     def __call__(self, img, target):
+        """
+
+        Parameters
+        ----------
+        image : {PIL.Image.Image, model=RGB, size=(W, H)}
+        
+        target : {dict_list}
+                    {
+                        "boxes" : {float, matrix} shape of (target_bbox_number, [x_1, y_1, x_2, y_2]), target bbox coordinate set
+                        "labels" : {int, vector} shape of (target_bbox_number), target bbox label class
+                        "image_id" : {int, scalar}, image id
+                        "area" : {float, vector} shape of (target_bbox_number), every bbox area
+                        "iscrowd" : {int, vector}, value is (0 or 1), shape of (target_bbox_number), 0: segmentation is polygon format, 1 : segmentation is RLE format
+                        "orig_size" : {int} of [H, W]
+                        "size" : {int} of [H, W]
+                    }
+        
+        Returns
+        -------
+        image : {torch.FloatTensor, tensor(3-dim)} of shape (C, H, W) value is between[0.0, 1.0]
+        
+        target : {dict_list}
+                    {
+                        "boxes" : {float, matrix} shape of (target_bbox_number, [x_1, y_1, x_2, y_2]), target bbox coordinate set
+                        "labels" : {int, vector} shape of (target_bbox_number), target bbox label class
+                        "image_id" : {int, scalar}, image id
+                        "area" : {float, vector} shape of (target_bbox_number), every bbox area
+                        "iscrowd" : {int, vector}, value is (0 or 1), shape of (target_bbox_number), 0: segmentation is polygon format, 1 : segmentation is RLE format
+                        "orig_size" : {int} of [H, W]
+                        "size" : {int} of [H, W]
+                    }
+        """
         return F.to_tensor(img), target
 
 
@@ -241,28 +591,124 @@ class RandomErasing(object):
 
 class Normalize(object):
     def __init__(self, mean, std):
+        """
+
+        Parameters
+        ----------
+        mean : {float, vector} of shape (channel), value is between [0, 1]
+
+        std : {float, vector} of shape (channel), value is between [0, 1]
+        """
         self.mean = mean
         self.std = std
 
     def __call__(self, image, target=None):
+        """image(C, H, W) normalize function
+        
+        target(optional to normalize): boxes coordinates [x_lt, y_lt, x_rd, y_rd]
+            normalize to [normalized_cx, normalized_cy, normalized_w, normalized_h]
+
+        Parameters
+        ----------
+        image : {float, tensor(3-dim)} of shape (channel, H, W) before normalize
+
+        target : (optional) {dict_list}
+                    {
+                        "boxes" : {float, matrix} shape of (target_bbox_number, [x_lt, y_lt, x_rd, y_rd]), target bbox coordinate set
+                        "labels" : {int, vector} shape of (target_bbox_number), target bbox label class
+                        "image_id" : {int, scalar}, image id
+                        "area" : {float, vector} shape of (target_bbox_number), every bbox area
+                        "iscrowd" : {int, vector}, value is (0 or 1), shape of (target_bbox_number), 0: segmentation is polygon format, 1 : segmentation is RLE format
+                        "orig_size" : {int} of [H, W]
+                        "size" : {int} of [H, W]
+                    }
+
+        Returns
+        -------
+        image : {float, tensor(3-dim)} of shape (channel, H, W) after normalize
+
+        target : (optional) {dict_list}
+                    {
+                        "boxes" : {float, matrix} shape of (target_bbox_number, [normalized_cx, normalized_cy, normalized_w, normalized_h]), target bbox coordinate set
+                        "labels" : {int, vector} shape of (target_bbox_number), target bbox label class
+                        "image_id" : {int, scalar}, image id
+                        "area" : {float, vector} shape of (target_bbox_number), every bbox area
+                        "iscrowd" : {int, vector}, value is (0 or 1), shape of (target_bbox_number), 0: segmentation is polygon format, 1 : segmentation is RLE format
+                        "orig_size" : {int} of [H, W]
+                        "size" : {int} of [H, W]
+                    }
+        
+        """
+        # ----------------------
+        # 用均值和标准差对张量图像进行标准化处理
+        #
+        # X' = (X - mean) / std
+        #
         image = F.normalize(image, mean=self.mean, std=self.std)
+        # ----------------------
+
         if target is None:
             return image, None
+        
         target = target.copy()
         h, w = image.shape[-2:]
+
+        # ----------------------
+        # mapping image boxes H,W to [0, 1]
+        #
         if "boxes" in target:
             boxes = target["boxes"]
             boxes = box_xyxy_to_cxcywh(boxes)
             boxes = boxes / torch.tensor([w, h, w, h], dtype=torch.float32)
             target["boxes"] = boxes
+        # ----------------------
+
         return image, target
 
 
 class Compose(object):
     def __init__(self, transforms):
+        """Make the processing method of image in order
+
+        Parameters
+        ----------
+        transforms : {function_name, vector} of shape (function_number)
+        """
         self.transforms = transforms
 
     def __call__(self, image, target):
+        """
+
+        Parameters
+        ----------
+        image : {PIL.Image.Image, model=RGB, size=(W, H)}
+        
+        target : {dict_list}
+                    {
+                        "boxes" : {float, matrix} shape of (target_bbox_number, [x_1, y_1, x_2, y_2]), target bbox coordinate set
+                        "labels" : {int, vector} shape of (target_bbox_number), target bbox label class
+                        "image_id" : {int, scalar}, image id
+                        "area" : {float, vector} shape of (target_bbox_number), every bbox area
+                        "iscrowd" : {int, vector}, value is (0 or 1), shape of (target_bbox_number), 0: segmentation is polygon format, 1 : segmentation is RLE format
+                        "orig_size" : {int} of [H, W]
+                        "size" : {int} of [H, W]
+                    }
+        
+        Returns
+        -------
+        image : {PIL.Image.Image, model=RGB, size=(new_W, new_H)}
+        
+        target : {dict_list}
+                    {
+                        "boxes" : {float, matrix} shape of (target_bbox_number, [x_1, y_1, x_2, y_2]), target bbox coordinate set
+                        "labels" : {int, vector} shape of (target_bbox_number), target bbox label class
+                        "image_id" : {int, scalar}, image id
+                        "area" : {float, vector} shape of (target_bbox_number), every bbox area
+                        "iscrowd" : {int, vector}, value is (0 or 1), shape of (target_bbox_number), 0: segmentation is polygon format, 1 : segmentation is RLE format
+                        "orig_size" : {int} of [H, W]
+                        "size" : {int} of [new_H, new_W]
+                    }
+        """
         for t in self.transforms:
             image, target = t(image, target)
         return image, target
